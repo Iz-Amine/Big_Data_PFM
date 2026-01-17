@@ -89,3 +89,14 @@ config_local.py
 *.out
 *.bbl
 *.blg
+
+
+
+# --- Docker Data (A NE JAMAIS COMMIT) ---
+mongo_data/
+postgres_data/
+
+# --- Résultats d'analyse (JSON générés) ---
+# Optionnel : Tu peux les garder si tu veux voir les résultats sur GitHub, 
+# mais si ils deviennent gros, décommente la ligne suivante :
+# 04_Data_Visualization/4a_Web_Dashboard/static/data/*.json
