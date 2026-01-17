@@ -1,0 +1,6 @@
+exit
+db.raw_publications.findOne()
+db.raw_publications.countDocuments()
+show collections
+use bigdata_project
+show dbs

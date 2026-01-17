@@ -1,0 +1,16 @@
+# --- Collecte de Données (Scraping) ---
+Scrapy==2.11.0        # Framework principal de crawling
+scrapy-splash==0.9.0  # Pour gérer le JavaScript avec Docker
+pymongo==4.6.1        # Connecteur pour stocker les items dans MongoDB
+
+# --- Analyse Big Data ---
+pyspark==3.5.0        # Interface Python pour Apache Spark
+pandas==2.1.4         # Manipulation de données (utile pour le nettoyage avant Spark)
+numpy==1.26.3         # Calculs numériques (dépendance souvent requise)
+
+# --- Visualisation & Web ---
+Flask==3.0.0          # Framework Web pour ton Dashboard
+Jinja2==3.1.2         # Moteur de template pour Flask
+
+# --- Utilitaires ---
+requests==2.31.0      # Pour des appels HTTP simples si besoin

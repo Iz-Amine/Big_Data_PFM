@@ -1,0 +1,91 @@
+# --- Python & Environnement Virtuel ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Environnements virtuels (très important)
+venv/
+env/
+ENV/
+.env
+.venv
+
+# --- Scrapy ---
+# Dossier de cache interne de Scrapy
+.scrapy/
+
+# Fichiers de sortie (Données scrapées volumineuses)
+# Je recommande d'ignorer les gros fichiers JSON/CSV pour ne pas surcharger Git
+*.json
+*.csv
+*.xml
+*.jl
+
+# --- Big Data (Spark & Hadoop) ---
+# Dossier par défaut de l'entrepôt Hive/Spark
+spark-warehouse/
+metastore_db/
+derby.log
+
+# Logs d'application
+*.log
+
+# --- Web (Flask) ---
+instance/
+.webassets-cache
+
+# --- IDE & Éditeurs (Configuration locale) ---
+# VS Code
+.vscode/
+
+# JetBrains (PyCharm, IntelliJ)
+.idea/
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# --- Système d'exploitation ---
+# Mac
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# --- Fichiers Sensibles (Sécurité) ---
+# Ignore les fichiers contenant des mots de passe ou clés API
+# Assure-toi de ne pas commiter tes vrais mots de passe dans settings.py !
+secrets.py
+config_local.py
+
+# --- LaTeX (Pour ton rapport) ---
+# Ignore les fichiers temporaires de compilation
+*.aux
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+*.toc
+*.out
+*.bbl
+*.blg

@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  # Service 1: Splash (Le moteur pour lire le JavaScript)
+  splash:
+    image: scrapinghub/splash
+    ports:
+      - "8050:8050"
+    restart: always
+
+  # Service 2: MongoDB (La base de données)
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./mongo_data:/data/db
+    restart: always
