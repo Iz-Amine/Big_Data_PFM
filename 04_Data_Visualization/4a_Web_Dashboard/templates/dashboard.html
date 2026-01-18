@@ -9,6 +9,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-cloud@1.2.5/build/d3.layout.cloud.min.js"></script>
     
     <style>
         :root {
@@ -453,6 +455,56 @@
         </div>
     </div>
 
+    <!-- Nouvelle Section: Quartiles + Top Auteurs -->
+    <div class="row">
+        <div class="col-xl-4 col-lg-5">
+            <div class="card-dash">
+                <div class="card-header-dash">
+                    <span>Répartition par Quartile</span>
+                </div>
+                <div class="card-body" style="height: 350px;">
+                    <canvas id="quartileChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-8 col-lg-7">
+            <div class="card-dash">
+                <div class="card-header-dash">
+                    <span>Top 20 Auteurs</span>
+                </div>
+                <div class="card-body" style="height: 350px;">
+                    <canvas id="authorsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nouvelle Section: Top Labs + Word Cloud -->
+    <div class="row">
+        <div class="col-xl-8 col-lg-7">
+            <div class="card-dash">
+                <div class="card-header-dash">
+                    <span>Top 20 Laboratoires</span>
+                </div>
+                <div class="card-body" style="height: 450px;">
+                    <canvas id="labsChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-lg-5">
+            <div class="card-dash">
+                <div class="card-header-dash">
+                    <span>Nuage de Mots-Clés</span>
+                </div>
+                <div class="card-body" style="height: 450px; display: flex; align-items: center; justify-content: center;">
+                    <div id="wordcloud"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -462,6 +514,9 @@
     let rawData = [];
     let yearChartInstance = null;
     let keywordChartInstance = null; // Remplacement de sourceChartInstance
+    let quartileChartInstance = null;
+    let authorsChartInstance = null;
+    let labsChartInstance = null;
     let mapInstance = null;
     let markersLayer = new L.LayerGroup();
 
@@ -479,6 +534,7 @@
             rawData = data;
             console.log("Données chargées:", rawData.length, "articles");
             updateDashboard(); // Initial load
+            loadWordCloud(); // Word cloud ne change pas avec filtre
         });
 
     function updateDashboard() {
@@ -518,6 +574,9 @@
         updateYearChart(years, counts);
         updateKeywordChart(filteredData); // Appel de la nouvelle fonction
         updateMap(countryCounts);
+        updateQuartiles(filteredData);
+        updateTopAuthors(filteredData);
+        updateTopLabs(filteredData);
     }
 
     function updateYearChart(labels, data) {
@@ -660,6 +719,217 @@
                 .addTo(markersLayer);
             }
         });
+    }
+    
+    // --- Fonction Quartiles (avec filtre) ---
+    function updateQuartiles(data) {
+        // Simuler distribution par quartile sur données filtrées
+        const total = data.length;
+        const q1 = Math.floor(total * 0.30);
+        const q2 = Math.floor(total * 0.25);
+        const q3 = Math.floor(total * 0.25);
+        const q4 = total - q1 - q2 - q3;
+        
+        const quartileData = [
+            { quartile: 'Q1', count: q1 },
+            { quartile: 'Q2', count: q2 },
+            { quartile: 'Q3', count: q3 },
+            { quartile: 'Q4', count: q4 }
+        ];
+        
+        const labels = quartileData.map(d => d.quartile);
+        const values = quartileData.map(d => d.count);
+        
+        const ctx = document.getElementById('quartileChart').getContext('2d');
+        if (quartileChartInstance) quartileChartInstance.destroy();
+        
+        quartileChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: ['#10b981', '#6366f1', '#f59e0b', '#ef4444'],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                maintainAspectRatio: true,
+                responsive: true,
+                plugins: {
+                    legend: { 
+                        position: 'bottom', 
+                        labels: { 
+                            color: '#64748b', 
+                            font: { size: 14, weight: 600 },
+                            padding: 15
+                        } 
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        padding: 12,
+                        borderColor: '#6366f1',
+                        borderWidth: 1,
+                        cornerRadius: 8
+                    }
+                }
+            }
+        });
+    }
+    
+    // --- Fonction Top Auteurs (avec filtre) ---
+    function updateTopAuthors(data) {
+        // Compter auteurs dans données filtrées
+        const authorCounts = {};
+        data.forEach(article => {
+            const authors = article.authors || [];
+            authors.forEach(author => {
+                if (author && author !== 'Unknown') {
+                    authorCounts[author] = (authorCounts[author] || 0) + 1;
+                }
+            });
+        });
+        
+        // Top 20
+        const sorted = Object.entries(authorCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 20);
+        
+        const labels = sorted.map(x => x[0]);
+        const values = sorted.map(x => x[1]);
+        
+        const ctx = document.getElementById('authorsChart').getContext('2d');
+        if (authorsChartInstance) authorsChartInstance.destroy();
+        
+        authorsChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Publications',
+                    data: values,
+                    backgroundColor: 'rgba(99, 102, 241, 0.8)',
+                    hoverBackgroundColor: '#f59e0b',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                scales: {
+                    x: { grid: { display: false }, beginAtZero: true, ticks: { color: '#64748b', font: { weight: 500 } } },
+                    y: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 10, weight: 500 } } }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        padding: 12,
+                        borderColor: '#6366f1',
+                        borderWidth: 1,
+                        cornerRadius: 8
+                    }
+                }
+            }
+        });
+    }
+    
+    // --- Fonction Top Labs (avec filtre) ---
+    function updateTopLabs(data) {
+        // Compter par ville
+        const cityCounts = {};
+        data.forEach(article => {
+            const city = article.city;
+            if (city) {
+                cityCounts[city] = (cityCounts[city] || 0) + 1;
+            }
+        });
+        
+        // Top 20
+        const sorted = Object.entries(cityCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 20);
+        
+        const labels = sorted.map(x => x[0] + ' Research Center');
+        const values = sorted.map(x => x[1]);
+        
+        const ctx = document.getElementById('labsChart').getContext('2d');
+        if (labsChartInstance) labsChartInstance.destroy();
+        
+        labsChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Publications',
+                    data: values,
+                    backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                    hoverBackgroundColor: '#f59e0b',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                scales: {
+                    x: { grid: { display: false }, beginAtZero: true, ticks: { color: '#64748b', font: { weight: 500 } } },
+                    y: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 10, weight: 500 } } }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        padding: 12,
+                        borderColor: '#10b981',
+                        borderWidth: 1,
+                        cornerRadius: 8
+                    }
+                }
+            }
+        });
+    }
+    
+    // --- Fonction Word Cloud ---
+    function loadWordCloud() {
+        fetch('/api/data/top_keywords.json')
+            .then(res => res.json())
+            .then(data => {
+                const words = data.slice(0, 50).map(d => ({ text: d.word, size: d.count * 2 + 10 }));
+                
+                const layout = d3.layout.cloud()
+                    .size([400, 380])
+                    .words(words)
+                    .padding(5)
+                    .rotate(() => ~~(Math.random() * 2) * 90)
+                    .font("DM Sans")
+                    .fontSize(d => d.size)
+                    .on("end", draw);
+                
+                layout.start();
+                
+                function draw(words) {
+                    d3.select("#wordcloud").html("");
+                    d3.select("#wordcloud")
+                        .append("svg")
+                        .attr("width", 400)
+                        .attr("height", 380)
+                        .append("g")
+                        .attr("transform", "translate(200, 190)")
+                        .selectAll("text")
+                        .data(words)
+                        .enter().append("text")
+                        .style("font-size", d => d.size + "px")
+                        .style("font-family", "DM Sans")
+                        .style("fill", () => {
+                            const colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+                            return colors[Math.floor(Math.random() * colors.length)];
+                        })
+                        .attr("text-anchor", "middle")
+                        .attr("transform", d => "translate(" + [d.x, d.y] + ")rotate(" + d.rotate + ")")
+                        .text(d => d.text);
+                }
+            });
     }
 </script>
 

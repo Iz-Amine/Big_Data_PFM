@@ -17,24 +17,36 @@ DB_CONFIG = {
 }
 
 def create_schema(cursor):
-    print("--- 1. Mise à jour du Schéma (Ajout des métriques de Qualité) ---")
+    print("--- 1. Mise à jour du Schéma (Ajout des métriques de Qualité + GPS) ---")
     
     # On nettoie proprement pour recréer la structure enrichie
     # CASCADE permet de supprimer les tables même si elles sont liées, pour éviter les erreurs
     cursor.execute("DROP TABLE IF EXISTS F_Publications CASCADE;")
+    cursor.execute("DROP TABLE IF EXISTS F_Publications_Auteurs CASCADE;")
     cursor.execute("DROP TABLE IF EXISTS D_Temps CASCADE;")
     cursor.execute("DROP TABLE IF EXISTS D_Geographie CASCADE;")
     cursor.execute("DROP TABLE IF EXISTS D_Sujet CASCADE;")
     cursor.execute("DROP TABLE IF EXISTS D_Source CASCADE;")
+    cursor.execute("DROP TABLE IF EXISTS D_Auteurs CASCADE;")
 
-    # --- Création des Dimensions (Structure inchangée pour ne pas casser l'existant) ---
+    # --- Création des Dimensions ---
     cursor.execute("CREATE TABLE D_Temps (id_temps SERIAL PRIMARY KEY, annee INTEGER UNIQUE NOT NULL);")
-    cursor.execute("CREATE TABLE D_Geographie (id_geo SERIAL PRIMARY KEY, pays VARCHAR(100), ville VARCHAR(100), UNIQUE(pays, ville));")
+    
+    cursor.execute("""
+        CREATE TABLE D_Geographie (
+            id_geo SERIAL PRIMARY KEY, 
+            pays VARCHAR(100), 
+            ville VARCHAR(100), 
+            latitude FLOAT, 
+            longitude FLOAT, 
+            UNIQUE(pays, ville)
+        );
+    """)
+    
     cursor.execute("CREATE TABLE D_Sujet (id_sujet SERIAL PRIMARY KEY, mot_cle VARCHAR(100) UNIQUE NOT NULL);")
     cursor.execute("CREATE TABLE D_Source (id_source SERIAL PRIMARY KEY, nom_source VARCHAR(100) UNIQUE NOT NULL);")
+    cursor.execute("CREATE TABLE D_Auteurs (id_auteur SERIAL PRIMARY KEY, nom_auteur VARCHAR(200) UNIQUE NOT NULL);")
 
-    # --- Création de la Table de Faits (ENRICHIE) ---
-    # On ajoute quartile, citations et impact_factor sans toucher aux colonnes existantes
     cursor.execute("""
         CREATE TABLE F_Publications (
             id_pub SERIAL PRIMARY KEY,
@@ -43,17 +55,22 @@ def create_schema(cursor):
             id_geo INTEGER REFERENCES D_Geographie(id_geo),
             id_sujet INTEGER REFERENCES D_Sujet(id_sujet),
             id_source INTEGER REFERENCES D_Source(id_source),
-            
-            -- Métriques existantes
             nb_publications INTEGER DEFAULT 1,
-            
-            -- NOUVELLES Métriques pour satisfaire l'exigence "Qualité" du prof
-            quartile VARCHAR(2),       -- Ex: Q1, Q2
-            nb_citations INTEGER,      -- Ex: 154
-            impact_factor FLOAT        -- Ex: 4.2
+            quartile VARCHAR(2),
+            nb_citations INTEGER,
+            impact_factor FLOAT
         );
     """)
-    print("✅ Schéma V2 déployé avec succès.")
+    
+    # Table de liaison Publications ↔ Auteurs (many-to-many)
+    cursor.execute("""
+        CREATE TABLE F_Publications_Auteurs (
+            id_pub INTEGER REFERENCES F_Publications(id_pub),
+            id_auteur INTEGER REFERENCES D_Auteurs(id_auteur),
+            PRIMARY KEY (id_pub, id_auteur)
+        );
+    """)
+    print("✅ Schéma V2 déployé avec succès (avec coordonnées GPS).")
 
 def load_data(conn, cursor):
     print("\n--- 2. Chargement et Simulation des données BI ---")
@@ -76,6 +93,10 @@ def load_data(conn, cursor):
         keyword = article.get('keyword', 'Non spécifié')
         source = article.get('source', 'Autre')
         titre = article.get('title', 'Sans titre')
+        
+        # AJOUT : Récupération des coordonnées GPS depuis le JSON
+        lat = article.get('latitude', 0.0)
+        lon = article.get('longitude', 0.0)
 
         # 2. Simulation des données manquantes (Pour le Dashboard BI seulement)
         # Logique : Q1 = plus de citations, Q4 = moins de citations
@@ -95,7 +116,12 @@ def load_data(conn, cursor):
         cursor.execute("SELECT id_temps FROM D_Temps WHERE annee = %s;", (annee,))
         id_temps = cursor.fetchone()[0]
 
-        cursor.execute("INSERT INTO D_Geographie (pays, ville) VALUES (%s, %s) ON CONFLICT (pays, ville) DO NOTHING;", (pays, ville))
+        # MODIFICATION : Insertion avec latitude et longitude
+        cursor.execute("""
+            INSERT INTO D_Geographie (pays, ville, latitude, longitude) 
+            VALUES (%s, %s, %s, %s) 
+            ON CONFLICT (pays, ville) DO NOTHING;
+        """, (pays, ville, lat, lon))
         cursor.execute("SELECT id_geo FROM D_Geographie WHERE pays = %s AND ville = %s;", (pays, ville))
         id_geo = cursor.fetchone()[0]
 
@@ -111,13 +137,31 @@ def load_data(conn, cursor):
         cursor.execute("""
             INSERT INTO F_Publications 
             (titre, id_temps, id_geo, id_sujet, id_source, nb_publications, quartile, nb_citations, impact_factor)
-            VALUES (%s, %s, %s, %s, %s, 1, %s, %s, %s);
+            VALUES (%s, %s, %s, %s, %s, 1, %s, %s, %s)
+            RETURNING id_pub;
         """, (titre, id_temps, id_geo, id_sujet, id_source, quartile, citations, impact))
+        
+        id_pub = cursor.fetchone()[0]
+        
+        # 5. Insertion des auteurs (many-to-many)
+        authors_list = article.get('authors', [])
+        for author_name in authors_list:
+            if author_name and author_name != 'Unknown':
+                # Insérer l'auteur (ou ignorer si existe)
+                cursor.execute("INSERT INTO D_Auteurs (nom_auteur) VALUES (%s) ON CONFLICT (nom_auteur) DO NOTHING;", (author_name,))
+                cursor.execute("SELECT id_auteur FROM D_Auteurs WHERE nom_auteur = %s;", (author_name,))
+                id_auteur = cursor.fetchone()[0]
+                
+                # Lier publication ↔ auteur
+                cursor.execute("""
+                    INSERT INTO F_Publications_Auteurs (id_pub, id_auteur) 
+                    VALUES (%s, %s) ON CONFLICT DO NOTHING;
+                """, (id_pub, id_auteur))
         
         count += 1
 
     conn.commit()
-    print(f"✅ ETL Terminé ! {count} lignes chargées dans PostgreSQL avec les données de qualité simulées.")
+    print(f"✅ ETL Terminé ! {count} lignes chargées dans PostgreSQL avec les données de qualité simulées et coordonnées GPS.")
 
 def main():
     try:

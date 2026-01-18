@@ -112,3 +112,6 @@ metabase_data/
 *.pyc
 
 checkpoint/
+*.zip
+*.mp4
+LIVRABLES/

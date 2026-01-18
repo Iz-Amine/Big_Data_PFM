@@ -21,6 +21,22 @@ def get_json_data(filename):
     data_dir = os.path.join(STATIC_DIR, 'data')
     return send_from_directory(data_dir, filename)
 
+# Nouvelles routes pour les visualisations manquantes
+@app.route('/api/quartiles')
+def get_quartiles():
+    data_dir = os.path.join(STATIC_DIR, 'data')
+    return send_from_directory(data_dir, 'quartiles_distribution.json')
+
+@app.route('/api/top-authors')
+def get_top_authors():
+    data_dir = os.path.join(STATIC_DIR, 'data')
+    return send_from_directory(data_dir, 'top_authors.json')
+
+@app.route('/api/top-laboratories')
+def get_top_labs():
+    data_dir = os.path.join(STATIC_DIR, 'data')
+    return send_from_directory(data_dir, 'top_laboratories.json')
+
 if __name__ == '__main__':
     print("🚀 Serveur lancé ! Oouvrez : http://127.0.0.1:5000")
     app.run(debug=True, port=5000)
