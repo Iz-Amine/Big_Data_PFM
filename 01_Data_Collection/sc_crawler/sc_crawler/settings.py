@@ -20,7 +20,8 @@ ITEM_PIPELINES = {
 }
 MONGO_URI = 'mongodb://localhost:27017'
 MONGO_DB = 'bigdata_project'
-MONGO_COLLECTION = 'raw_articles'
+# MONGO_COLLECTION = 'raw_articles'
+MONGO_COLLECTION = 'raw_publications'
 
 # --- Respect des règles ---
 ROBOTSTXT_OBEY = False
