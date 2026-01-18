@@ -11,6 +11,7 @@ numpy==1.26.3         # Calculs numériques (dépendance souvent requise)
 # --- Visualisation & Web ---
 Flask==3.0.0          # Framework Web pour ton Dashboard
 Jinja2==3.1.2         # Moteur de template pour Flask
+psycopg2-binary       # PostgreSQL 
 
 # --- Utilitaires ---
 requests==2.31.0      # Pour des appels HTTP simples si besoin

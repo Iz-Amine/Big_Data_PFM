@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Scientific Big Data Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --accent: #f59e0b;
+            --success: #10b981;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body { 
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%);
+            font-family: 'DM Sans', sans-serif;
+            color: var(--text-primary);
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        /* Navbar */
+        .navbar { 
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+            border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            animation: slideDown 0.5s ease-out;
+        }
+        
+        @keyframes slideDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .brand-text { 
+            font-family: 'Sora', sans-serif;
+            font-weight: 800;
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .brand-text i {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 1.75rem;
+        }
+
+        /* Cards Style */
+        .card-dash {
+            border: none;
+            border-radius: 1rem;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background: var(--card-bg);
+            margin-bottom: 25px;
+            overflow: hidden;
+            position: relative;
+            animation: fadeInUp 0.6s ease-out backwards;
+        }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .card-dash::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-color), var(--primary-light), var(--accent));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.4s ease;
+        }
+        
+        .card-dash:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-xl);
+        }
+        
+        .card-dash:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .card-header-dash {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(99, 102, 241, 0.02) 100%);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1.25rem 1.5rem;
+            font-family: 'Sora', sans-serif;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            letter-spacing: -0.3px;
+        }
+
+        /* KPI Cards */
+        .kpi-card { 
+            border-left: 4px solid var(--primary-color);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .kpi-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            transform: translate(30%, -30%);
+        }
+        
+        .kpi-title { 
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .kpi-value { 
+            font-family: 'Sora', sans-serif;
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            letter-spacing: -1px;
+            line-height: 1;
+        }
+        
+        .kpi-card .card-body {
+            padding: 1.5rem;
+        }
+        
+        .kpi-card i {
+            font-size: 2.5rem;
+            opacity: 0.15;
+            transition: all 0.3s ease;
+        }
+        
+        .kpi-card:hover i {
+            opacity: 0.25;
+            transform: scale(1.1);
+        }
+
+        /* Map & Charts */
+        #map { 
+            height: 400px;
+            width: 100%;
+            border-radius: 0 0 1rem 1rem;
+            z-index: 1;
+            filter: saturate(1.1);
+        }
+        
+        canvas { 
+            max-height: 350px;
+        }
+
+        /* Filter Container */
+        .filter-container { 
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%);
+            backdrop-filter: blur(10px);
+            padding: 1.75rem;
+            border-radius: 1rem;
+            box-shadow: var(--shadow-md);
+            margin-bottom: 25px;
+            border: 1px solid rgba(99, 102, 241, 0.1);
+            animation: fadeInUp 0.6s ease-out 0.2s backwards;
+        }
+        
+        .filter-container h5 {
+            font-family: 'Sora', sans-serif;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+            letter-spacing: -0.3px;
+        }
+        
+        .form-select {
+            border: 2px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+            background-color: white;
+            cursor: pointer;
+        }
+        
+        .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+            outline: none;
+        }
+        
+        .form-select:hover {
+            border-color: var(--primary-light);
+        }
+        
+        /* Staggered animations */
+        .kpi-card:nth-child(1) { animation-delay: 0.1s; }
+        .kpi-card:nth-child(2) { animation-delay: 0.2s; }
+        .kpi-card:nth-child(3) { animation-delay: 0.3s; }
+        
+        .row > div:nth-child(1) .card-dash { animation-delay: 0.4s; }
+        .row > div:nth-child(2) .card-dash { animation-delay: 0.5s; }
+        
+        /* Leaflet popup styling */
+        .leaflet-popup-content-wrapper {
+            border-radius: 0.75rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
+            padding: 0;
+        }
+        
+        .leaflet-popup-content {
+            margin: 1rem;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 500;
+        }
+        
+        .leaflet-popup-tip {
+            box-shadow: var(--shadow-md);
+        }
+        
+        /* Responsive improvements */
+        @media (max-width: 768px) {
+            .brand-text {
+                font-size: 1.25rem;
+            }
+            
+            .filter-container {
+                padding: 1.25rem;
+            }
+            
+            .filter-container > div:first-child {
+                margin-bottom: 1rem;
+            }
+            
+            .w-25 {
+                width: 100% !important;
+            }
+            
+            .kpi-value {
+                font-size: 1.75rem;
+            }
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--bg-color);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, var(--primary-color), var(--primary-light));
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-dark);
+        }
+        
+        /* Loading state */
+        .loading-shimmer {
+            background: linear-gradient(90deg, 
+                rgba(255, 255, 255, 0) 0%, 
+                rgba(255, 255, 255, 0.5) 50%, 
+                rgba(255, 255, 255, 0) 100%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand navbar-light topbar mb-4 static-top">
+    <div class="container-fluid">
+        <a class="navbar-brand brand-text" href="#"><i class="fas fa-chart-line me-2"></i> DATA ANALYTICS</a>
+        <span class="navbar-text ms-auto text-gray-600 small">Projet Big Data & BI • Amine</span>
+    </div>
+</nav>
+
+<div class="container-fluid px-4">
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="filter-container d-flex align-items-center justify-content-between">
+                <div>
+                    <h5 class="m-0 font-weight-bold text-primary">Filtrer par Thématique</h5>
+                    <p class="mb-0 text-muted small">Sélectionnez un sujet pour mettre à jour tout le tableau de bord.</p>
+                </div>
+                <div class="w-25">
+                    <select id="topicFilter" class="form-select form-select-lg shadow-sm" onchange="updateDashboard()">
+                        <option value="All">🔍 Tous les sujets</option>
+                        <option value="Blockchain">⛓️ Blockchain</option>
+                        <option value="Deep Learning">🧠 Deep Learning</option>
+                        <option value="Big Data">💾 Big Data</option>
+                        <option value="Quant Trading">📈 Quant Trading</option>
+                        <option value="Cloud Computing">☁️ Cloud Computing</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card-dash kpi-card h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="kpi-title mb-1">Total Publications</div>
+                            <div class="kpi-value" id="totalCount">0</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-book fa-2x text-gray-300" style="color: #dddfeb;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card-dash kpi-card h-100 py-2" style="border-left-color: #10b981;">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="kpi-title mb-1" style="color: #10b981;">Top Pays</div>
+                            <div class="kpi-value" id="topCountry">-</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-globe fa-2x" style="color: #dddfeb;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card-dash kpi-card h-100 py-2" style="border-left-color: #f59e0b;">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="kpi-title mb-1" style="color: #f59e0b;">Horizon Temporel</div>
+                            <div class="kpi-value" id="yearRange">-</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar fa-2x" style="color: #dddfeb;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-xl-7 col-lg-7">
+            <div class="card-dash">
+                <div class="card-header-dash">
+                    <span>Historique des publications</span>
+                </div>
+                <div class="card-body">
+                    <canvas id="yearChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-5 col-lg-5">
+            <div class="card-dash">
+                <div class="card-header-dash">
+                    <span>Distribution des Thématiques</span>
+                </div>
+                <div class="card-body">
+                    <canvas id="keywordChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card-dash">
+                <div class="card-header-dash">
+                    <span>Répartition mondiale de la recherche</span>
+                </div>
+                <div class="card-body p-0">
+                    <div id="map"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    let rawData = [];
+    let yearChartInstance = null;
+    let keywordChartInstance = null; // Remplacement de sourceChartInstance
+    let mapInstance = null;
+    let markersLayer = new L.LayerGroup();
+
+    // Init Map
+    mapInstance = L.map('map').setView([20, 0], 2);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO'
+    }).addTo(mapInstance);
+    markersLayer.addTo(mapInstance);
+
+    // Load Data
+    fetch('/api/data/global_data.json')
+        .then(res => res.json())
+        .then(data => {
+            rawData = data;
+            console.log("Données chargées:", rawData.length, "articles");
+            updateDashboard(); // Initial load
+        });
+
+    function updateDashboard() {
+        const selectedTopic = document.getElementById('topicFilter').value;
+        console.log("Filtre sélectionné:", selectedTopic);
+
+        // 1. Filtrage
+        let filteredData = rawData;
+        if (selectedTopic !== "All") {
+            filteredData = rawData.filter(d => 
+                d.keyword && d.keyword.toLowerCase().includes(selectedTopic.toLowerCase())
+            );
+        }
+
+        // 2. Calcul KPIs
+        document.getElementById('totalCount').innerText = filteredData.length;
+        
+        // --- Stats Années ---
+        const yearCounts = {};
+        filteredData.forEach(d => { yearCounts[d.year] = (yearCounts[d.year] || 0) + 1; });
+        const years = Object.keys(yearCounts).sort();
+        const counts = years.map(y => yearCounts[y]);
+        
+        if (years.length > 0) {
+            document.getElementById('yearRange').innerText = `${years[0]} - ${years[years.length-1]}`;
+        } else {
+            document.getElementById('yearRange').innerText = "-";
+        }
+
+        // --- Stats Pays ---
+        const countryCounts = {};
+        filteredData.forEach(d => { if(d.country) countryCounts[d.country] = (countryCounts[d.country] || 0) + 1; });
+        const topCountry = Object.entries(countryCounts).sort((a,b) => b[1] - a[1])[0];
+        document.getElementById('topCountry').innerText = topCountry ? topCountry[0] : "-";
+
+        // --- Update Charts ---
+        updateYearChart(years, counts);
+        updateKeywordChart(filteredData); // Appel de la nouvelle fonction
+        updateMap(countryCounts);
+    }
+
+    function updateYearChart(labels, data) {
+        const ctx = document.getElementById('yearChart').getContext('2d');
+        if (yearChartInstance) yearChartInstance.destroy();
+
+        yearChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Publications',
+                    data: data,
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    borderColor: '#6366f1',
+                    pointRadius: 5,
+                    pointBackgroundColor: '#6366f1',
+                    pointBorderColor: '#fff',
+                    pointHoverRadius: 7,
+                    pointHitRadius: 10,
+                    pointBorderWidth: 2,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                scales: {
+                    x: { 
+                        grid: { display: false },
+                        ticks: { color: '#64748b', font: { weight: 500 } }
+                    },
+                    y: { 
+                        grid: { color: '#e2e8f0', drawBorder: false },
+                        ticks: { color: '#64748b', font: { weight: 500 } }
+                    }
+                },
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        titleColor: '#fff',
+                        bodyColor: '#cbd5e1',
+                        padding: 12,
+                        borderColor: '#6366f1',
+                        borderWidth: 1,
+                        cornerRadius: 8
+                    }
+                }
+            }
+        });
+    }
+
+    // --- NOUVELLE FONCTION : Graphique en Barres des Mots-clés ---
+    function updateKeywordChart(data) {
+        // Compter les occurrences de chaque keyword (Topic)
+        const counts = {};
+        data.forEach(d => {
+            const k = d.keyword || "Autre";
+            counts[k] = (counts[k] || 0) + 1;
+        });
+
+        // Trier et préparer les données
+        const sortedKeywords = Object.entries(counts)
+            .sort((a, b) => b[1] - a[1]) // Tri décroissant
+            .slice(0, 10); // Top 10
+
+        const labels = sortedKeywords.map(x => x[0]);
+        const values = sortedKeywords.map(x => x[1]);
+        
+        const ctx = document.getElementById('keywordChart').getContext('2d');
+        if (keywordChartInstance) keywordChartInstance.destroy();
+
+        keywordChartInstance = new Chart(ctx, {
+            type: 'bar', // Type Barre
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Nombre d\'articles',
+                    data: values,
+                    backgroundColor: 'rgba(99, 102, 241, 0.8)',
+                    hoverBackgroundColor: '#f59e0b',
+                    borderRadius: 6,
+                    barPercentage: 0.7
+                }],
+            },
+            options: {
+                maintainAspectRatio: false,
+                indexAxis: 'y', // 'y' pour barres horizontales (plus lisible pour les textes), 'x' pour verticales
+                scales: {
+                    x: { 
+                        grid: { display: false },
+                        beginAtZero: true,
+                        ticks: { color: '#64748b', font: { weight: 500 } }
+                    },
+                    y: { 
+                        grid: { display: false },
+                        ticks: { color: '#64748b', font: { weight: 500 } }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        titleColor: '#fff',
+                        bodyColor: '#cbd5e1',
+                        padding: 12,
+                        borderColor: '#6366f1',
+                        borderWidth: 1,
+                        cornerRadius: 8
+                    }
+                }
+            },
+        });
+    }
+
+    function updateMap(countryCounts) {
+        markersLayer.clearLayers();
+        
+        // Coordonnées (Simplifiées)
+        const coords = {
+            "USA": [37.0902, -95.7129], "France": [46.2276, 2.2137], 
+            "Morocco": [31.7917, -7.0926], "Germany": [51.1657, 10.4515],
+            "China": [35.8617, 104.1954], "India": [20.5937, 78.9629], 
+            "UK": [55.3781, -3.4360], "Canada": [56.1304, -106.3468],
+            "Japan": [36.2048, 138.2529], "Australia": [-25.2744, 133.7751]
+        };
+
+        Object.entries(countryCounts).forEach(([country, count]) => {
+            if (coords[country]) {
+                L.circleMarker(coords[country], {
+                    radius: Math.sqrt(count) * 2,
+                    fillColor: "#6366f1",
+                    color: "#fff",
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.75
+                })
+                .bindPopup(`<b>${country}</b><br>Publications: ${count}`)
+                .addTo(markersLayer);
+            }
+        });
+    }
+</script>
+
+</body>
+</html>

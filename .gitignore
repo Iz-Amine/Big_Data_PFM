@@ -100,3 +100,15 @@ postgres_data/
 # Optionnel : Tu peux les garder si tu veux voir les résultats sur GitHub, 
 # mais si ils deviennent gros, décommente la ligne suivante :
 # 04_Data_Visualization/4a_Web_Dashboard/static/data/*.json
+
+# --- Bases de données & Metabase ---
+*.db
+*.mv.db
+*.trace.db
+metabase.db/
+metabase_data/
+
+# --- Python ---
+*.pyc
+
+checkpoint/
