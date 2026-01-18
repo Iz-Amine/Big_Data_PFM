@@ -1,3 +1,5 @@
+# spark-submit --packages org.mongodb.spark:mongo-spark-connector_2.12:10.3.0 spark_analysis.py
+
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, count, avg, sum, min, max, desc, year, month, explode, split, lower, regexp_replace
 from pyspark.sql.types import IntegerType, FloatType
